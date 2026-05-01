@@ -1,0 +1,21 @@
+# Large image archives (loaded via docker load)
+*.tar
+
+# GitLab runtime data & secrets
+gitlab/config/
+gitlab/data/
+gitlab/logs/
+
+# Redmine runtime data
+redmine/log/
+redmine/sqlite/
+redmine/files/
+redmine/plugins/
+redmine/themes/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
