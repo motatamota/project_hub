@@ -3,7 +3,8 @@
     "allow": [
       "Bash(chmod +x /mnt/c/Users/tiger/Desktop/project_hub/setup.sh /mnt/c/Users/tiger/Desktop/project_hub/image/load-images.sh)",
       "Bash(docker compose *)",
-      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 5 http://localhost/)"
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 5 http://localhost/)",
+      "Bash(docker exec *)"
     ]
   }
 }

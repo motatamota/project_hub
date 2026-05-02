@@ -13,7 +13,7 @@ GIT_GID="${GIT_GID:-998}"
 
 mkdir -p \
   gitlab/config gitlab/logs gitlab/data \
-  redmine/files redmine/plugins redmine/themes redmine/log redmine/sqlite
+  redmine/files redmine/plugins redmine/themes redmine/log
 
 # Redmine が UID=${GIT_UID} で起動するため、書き込み対象ディレクトリの所有権を揃える
 SUDO=""
@@ -22,6 +22,6 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 $SUDO chown -R "${GIT_UID}:${GIT_GID}" \
-  redmine/files redmine/plugins redmine/themes redmine/log redmine/sqlite
+  redmine/files redmine/plugins redmine/themes redmine/log
 
 echo "Setup complete. UID/GID = ${GIT_UID}/${GIT_GID}"

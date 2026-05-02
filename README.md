@@ -2,6 +2,7 @@
 
 GitLab EE と Redmine を docker-compose で構築する環境。
 GitLab のリポジトリ領域を Redmine から read-only マウントし、Redmine の UID を GitLab の `git` ユーザ（UID 998）に揃えてあります。
+Redmine の DB は PostgreSQL（独立コンテナ）を使用します。
 
 ---
 
@@ -9,12 +10,12 @@ GitLab のリポジトリ領域を Redmine から read-only マウントし、Re
 
 ```
 project_hub/
-├── docker-compose.yml     # gitlab + redmine 定義
-├── .env                   # イメージタグ・ポート・UID/GID
+├── docker-compose.yml     # gitlab + redmine + postgres 定義
+├── .env                   # イメージタグ・ポート・DB認証情報・UID/GID
 ├── setup.sh               # ボリュームディレクトリ作成 + chown
 ├── image/
 │   ├── load-images.sh     # ./image/*.tar を docker load
-│   └── *.tar              # （ユーザが配置）GitLab / Redmine の tar
+│   └── *.tar              # （ユーザが配置）GitLab / Redmine / Postgres の tar
 ├── gitlab/
 │   ├── config/            # /etc/gitlab
 │   ├── logs/              # /var/log/gitlab
@@ -23,8 +24,9 @@ project_hub/
     ├── files/             # /usr/src/redmine/files
     ├── plugins/           # /usr/src/redmine/plugins
     ├── themes/            # /usr/src/redmine/themes
-    ├── log/               # /usr/src/redmine/log
-    └── sqlite/            # /usr/src/redmine/sqlite（DB ファイル）
+    └── log/               # /usr/src/redmine/log
+
+# PostgreSQL データは Docker 名前付きボリューム `postgres_data` に保存される
 ```
 
 ---
@@ -36,8 +38,9 @@ project_hub/
 - `image/` 配下に以下の tar を配置（`docker save` で作成したもの）
   - `gitlab-ee.tar`（タグ: `gitlab/gitlab-ee:latest`）
   - `redmine.tar`（タグ: `redmine:5`）
+  - `postgres.tar`（タグ: `postgres:16-alpine`）
 
-タグを変えたい場合は `.env` の `GITLAB_IMAGE` / `REDMINE_IMAGE` を書き換えてください。
+タグを変えたい場合は `.env` の `GITLAB_IMAGE` / `REDMINE_IMAGE` / `POSTGRES_IMAGE` を書き換えてください。
 
 tar の作成例（イメージ提供側）:
 
@@ -47,6 +50,9 @@ docker save gitlab/gitlab-ee:latest -o gitlab-ee.tar
 
 docker pull redmine:5
 docker save redmine:5 -o redmine.tar
+
+docker pull postgres:16-alpine
+docker save postgres:16-alpine -o postgres.tar
 ```
 
 ---
@@ -97,6 +103,10 @@ docker compose exec gitlab cat /etc/gitlab/initial_root_password
 | `GITLAB_HTTPS_PORT`| `443`                        | GitLab HTTPS ポート                      |
 | `GITLAB_SSH_PORT`  | `2222`                       | GitLab SSH ポート                        |
 | `REDMINE_PORT`     | `3000`                       | Redmine HTTP ポート                      |
+| `POSTGRES_IMAGE`   | `postgres:16-alpine`         | tar をロードした後の PostgreSQL イメージタグ |
+| `POSTGRES_DB`      | `redmine`                    | Redmine 用 DB 名                         |
+| `POSTGRES_USER`    | `redmine`                    | Redmine 用 DB ユーザ                     |
+| `POSTGRES_PASSWORD`| `change_me_in_production`    | Redmine 用 DB パスワード（**本番では必ず変更**） |
 | `GIT_UID`          | `998`                        | GitLab Omnibus の git ユーザ UID         |
 | `GIT_GID`          | `998`                        | GitLab Omnibus の git ユーザ GID         |
 
@@ -132,6 +142,22 @@ docker compose down
 docker compose down
 
 # データを消したい時はホストの ./gitlab, ./redmine ディレクトリを手動削除
+# Postgres のデータは名前付きボリューム postgres_data にあるので、消すなら:
+#   docker compose down -v
+```
+
+---
+
+## DB バックアップ / リストア
+
+```bash
+# バックアップ（コンテナ起動中）
+docker compose exec -T postgres pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" \
+  | gzip > redmine_$(date +%Y%m%d_%H%M%S).sql.gz
+
+# リストア
+gunzip -c redmine_YYYYMMDD_HHMMSS.sql.gz \
+  | docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
 
 ---
@@ -140,4 +166,5 @@ docker compose down
 
 - ホスト側の `./gitlab/data/git-data/repositories` のオーナーは UID 998（コンテナ内 `git`）になります。Redmine も同 UID で動くため読み取り可能。
 - `setup.sh` は `redmine/` 配下を `998:998` に chown します。WSL 上で `/mnt/c` を使っている場合、`metadata` マウントオプションが有効でないと chown が効かないことがあります。その場合は `/etc/wsl.conf` で `[automount] options = "metadata"` を設定してください。
-- DB は SQLite（`redmine/sqlite/redmine.db`）。MySQL/PostgreSQL に切り替える場合は `docker-compose.yml` に DB サービスを追加し、Redmine 側に `REDMINE_DB_*` 環境変数を渡してください。
+- Redmine の DB は PostgreSQL（独立コンテナ `redmine_postgres`）。データは Docker 名前付きボリューム `postgres_data` に保存されます。`POSTGRES_PASSWORD` は `.env` で必ず変更してください。
+- 旧 `redmine/sqlite/` ディレクトリが残っている場合、PostgreSQL 切替後は不要です。手動で削除可。

@@ -20,13 +20,40 @@ services:
     networks:
       - hub_net
 
+  postgres:
+    image: ${POSTGRES_IMAGE}
+    container_name: redmine_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hub_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   redmine:
     image: ${REDMINE_IMAGE}
     container_name: redmine
     restart: unless-stopped
     user: "${GIT_UID}:${GIT_GID}"
     depends_on:
-      - gitlab
+      postgres:
+        condition: service_healthy
+      gitlab:
+        condition: service_started
+    environment:
+      REDMINE_DB_POSTGRES: postgres
+      REDMINE_DB_PORT: 5432
+      REDMINE_DB_DATABASE: ${POSTGRES_DB}
+      REDMINE_DB_USERNAME: ${POSTGRES_USER}
+      REDMINE_DB_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "${REDMINE_PORT}:3000"
     volumes:
@@ -34,10 +61,12 @@ services:
       - ./redmine/plugins:/usr/src/redmine/plugins
       - ./redmine/themes:/usr/src/redmine/themes
       - ./redmine/log:/usr/src/redmine/log
-      - ./redmine/sqlite:/usr/src/redmine/sqlite
       - ./gitlab/data/git-data/repositories:/var/redmine/repositories:ro
     networks:
       - hub_net
+
+volumes:
+  postgres_data:
 
 networks:
   hub_net:
