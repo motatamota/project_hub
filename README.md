@@ -42,9 +42,11 @@ project_hub/
 
 タグを変えたい場合は `.env` の `GITLAB_IMAGE` / `REDMINE_IMAGE` / `POSTGRES_IMAGE` を書き換えてください。
 
-tar の作成例（イメージ提供側）:
+tar の作成例（イメージ提供側）。プロジェクトルートで実行:
 
 ```bash
+cd image/
+
 docker pull gitlab/gitlab-ee:latest
 docker save gitlab/gitlab-ee:latest -o gitlab-ee.tar
 
@@ -59,9 +61,9 @@ docker save postgres:16-alpine -o postgres.tar
 
 ## セットアップ
 
-```bash
-cd /mnt/c/Users/tiger/Desktop/project_hub
+プロジェクトルート（このREADMEがあるディレクトリ）で実行:
 
+```bash
 # 1. tar からイメージをロード
 ./image/load-images.sh
 
