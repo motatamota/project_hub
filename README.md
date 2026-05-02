@@ -24,9 +24,8 @@ project_hub/
     ├── files/             # /usr/src/redmine/files
     ├── plugins/           # /usr/src/redmine/plugins
     ├── themes/            # /usr/src/redmine/themes
-    └── log/               # /usr/src/redmine/log
-
-# PostgreSQL データは Docker 名前付きボリューム `postgres_data` に保存される
+    ├── log/               # /usr/src/redmine/log
+    └── postgres/          # /var/lib/postgresql/data（PostgreSQL データ実体）
 ```
 
 ---
@@ -144,8 +143,7 @@ docker compose down
 docker compose down
 
 # データを消したい時はホストの ./gitlab, ./redmine ディレクトリを手動削除
-# Postgres のデータは名前付きボリューム postgres_data にあるので、消すなら:
-#   docker compose down -v
+#   PostgreSQL のデータも ./redmine/postgres に保存されているので一緒に消える
 ```
 
 ---
@@ -168,5 +166,5 @@ gunzip -c redmine_YYYYMMDD_HHMMSS.sql.gz \
 
 - ホスト側の `./gitlab/data/git-data/repositories` のオーナーは UID 998（コンテナ内 `git`）になります。Redmine も同 UID で動くため読み取り可能。
 - `setup.sh` は `redmine/` 配下を `998:998` に chown します。WSL 上で `/mnt/c` を使っている場合、`metadata` マウントオプションが有効でないと chown が効かないことがあります。その場合は `/etc/wsl.conf` で `[automount] options = "metadata"` を設定してください。
-- Redmine の DB は PostgreSQL（独立コンテナ `redmine_postgres`）。データは Docker 名前付きボリューム `postgres_data` に保存されます。`POSTGRES_PASSWORD` は `.env` で必ず変更してください。
+- Redmine の DB は PostgreSQL（独立コンテナ `redmine_postgres`）。データは `./redmine/postgres/` にbindマウントで保存されます。所有権は `setup.sh` が UID/GID=70（postgresユーザ）に揃えます。`POSTGRES_PASSWORD` は `.env` で必ず変更してください。
 - 旧 `redmine/sqlite/` ディレクトリが残っている場合、PostgreSQL 切替後は不要です。手動で削除可。

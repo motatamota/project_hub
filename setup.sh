@@ -11,10 +11,15 @@ fi
 GIT_UID="${GIT_UID:-998}"
 GIT_GID="${GIT_GID:-998}"
 
+# postgres:16-alpine の postgres ユーザは UID/GID 70
+POSTGRES_UID=70
+POSTGRES_GID=70
+
 mkdir -p \
   gitlab/config gitlab/logs gitlab/data \
   gitlab/data/git-data/repositories \
-  redmine/files redmine/plugins redmine/themes redmine/log
+  redmine/files redmine/plugins redmine/themes redmine/log \
+  redmine/postgres
 
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then
@@ -30,4 +35,10 @@ $SUDO chown -R "${GIT_UID}:${GIT_GID}" \
 $SUDO chown -R "${GIT_UID}:${GIT_GID}" gitlab/data/git-data
 $SUDO chmod 2770 gitlab/data/git-data/repositories
 
-echo "Setup complete. UID/GID = ${GIT_UID}/${GIT_GID}"
+# PostgreSQL: postgres ユーザ(UID/GID=70)に揃え、PGDATA は 0700 必須
+$SUDO chown -R "${POSTGRES_UID}:${POSTGRES_GID}" redmine/postgres
+$SUDO chmod 700 redmine/postgres
+
+echo "Setup complete."
+echo "  GIT_UID/GID      = ${GIT_UID}/${GIT_GID}"
+echo "  POSTGRES_UID/GID = ${POSTGRES_UID}/${POSTGRES_GID}"

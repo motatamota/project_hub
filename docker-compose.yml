@@ -29,7 +29,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./redmine/postgres:/var/lib/postgresql/data
     networks:
       - hub_net
     healthcheck:
@@ -64,9 +64,6 @@ services:
       - ./gitlab/data/git-data/repositories:/var/redmine/repositories:ro
     networks:
       - hub_net
-
-volumes:
-  postgres_data:
 
 networks:
   hub_net:

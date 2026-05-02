@@ -13,7 +13,7 @@ redmine/files/
 redmine/plugins/
 redmine/themes/
 
-# Postgres data (also stored in named volume — ignore stray bind mount dir)
+# Postgres data (bind-mounted under redmine/postgres/)
 redmine/postgres/
 
 # OS / editor
